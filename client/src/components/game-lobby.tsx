@@ -7,20 +7,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export function GameLobby() {
   const [roomCode, setRoomCode] = useState("")
+  const [displayName, setDisplayName] = useState("")
   const [players, setPlayers] = useState<string[]>([])
   const [inRoom, setInRoom] = useState(false)
 
   const createRoom = () => {
-    const newRoomCode = Math.random().toString(36).substring(2, 8).toUpperCase()
-    setRoomCode(newRoomCode)
-    setPlayers(["You (Host)"])
-    setInRoom(true)
+    if (displayName) {
+      const newRoomCode = Math.random().toString(36).substring(2, 8).toUpperCase()
+      setRoomCode(newRoomCode)
+      setPlayers([`${displayName} (Host)`])
+      setInRoom(true)
+    }
   }
 
   const joinRoom = () => {
-    if (roomCode.length === 6) {
-      setPlayers(["You", "Player 2", "Player 3"]) // Simulated players
+    if (displayName && roomCode.length === 6) {
+      setPlayers([displayName, "Player 2", "Player 3"]) // Simulated players
       setInRoom(true)
+    } else if (!displayName) {
+      alert("Please enter your display name")
     } else {
       alert("Please enter a valid 6-character room code")
     }
@@ -42,7 +47,14 @@ export function GameLobby() {
       <CardContent>
         {!inRoom ? (
           <div className="space-y-4">
-            <Button onClick={createRoom} className="w-full">
+            <Input
+              type="text"
+              placeholder="Enter your display name"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              className="bg-gray-700 text-white"
+            />
+            <Button onClick={createRoom} className="w-full" disabled={!displayName}>
               Create Room
             </Button>
             <div className="flex space-x-2">
@@ -54,7 +66,9 @@ export function GameLobby() {
                 maxLength={6}
                 className="bg-gray-700 text-white"
               />
-              <Button onClick={joinRoom}>Join Room</Button>
+              <Button onClick={joinRoom} disabled={!displayName}>
+                Join Room
+              </Button>
             </div>
           </div>
         ) : (
