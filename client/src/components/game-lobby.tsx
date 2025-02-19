@@ -1,9 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { io } from "socket.io-client";
+const socket = io("http://localhost:8080");
 
 export function GameLobby() {
   const [roomCode, setRoomCode] = useState("")
@@ -11,27 +13,44 @@ export function GameLobby() {
   const [players, setPlayers] = useState<string[]>([])
   const [inRoom, setInRoom] = useState(false)
 
+  useEffect(() => {
+    socket.on("roomCreated", (newRoomCode) => {
+      setRoomCode(newRoomCode)
+      setInRoom(true)
+    });
+
+    socket.on("roomUpdated", (room) => {
+      setPlayers(room.players.map((p: any) => p.name));
+    });
+
+    socket.on("error", (message) => alert(message));
+
+    return () => {
+      socket.off("roomCreated");
+      socket.off("roomUpdated");
+      socket.off("error");
+    };
+  }, []);
+
   const createRoom = () => {
     if (displayName) {
-      const newRoomCode = Math.random().toString(36).substring(2, 8).toUpperCase()
-      setRoomCode(newRoomCode)
-      setPlayers([`${displayName} (Host)`])
-      setInRoom(true)
+      socket.emit("create-room", displayName);
     }
   }
 
   const joinRoom = () => {
     if (displayName && roomCode.length === 6) {
-      setPlayers([displayName, "Player 2", "Player 3"]) // Simulated players
-      setInRoom(true)
+      socket.emit("join-room", { roomCode, displayName });
+      setInRoom(true);
     } else if (!displayName) {
-      alert("Please enter your display name")
+      alert("Please enter your display name");
     } else {
-      alert("Please enter a valid 6-character room code")
+      alert("Please enter a valid 6-character room code");
     }
   }
 
   const leaveRoom = () => {
+    socket.emit("leave-room", roomCode);
     setRoomCode("")
     setPlayers([])
     setInRoom(false)
