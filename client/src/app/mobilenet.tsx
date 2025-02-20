@@ -2,9 +2,8 @@ import React, { useRef, useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import io, { Socket } from "socket.io-client";
 import * as mobilenet from "@tensorflow-models/mobilenet";
-import "@tensorflow/tfjs"; // Required for mobilenet to run
+import "@tensorflow/tfjs"; 
 
-// Dynamically import the CanvasDraw so Next.js won't SSR it
 const CanvasDraw = dynamic(() => import("../components/canvas.js"), {
   ssr: false,
 });

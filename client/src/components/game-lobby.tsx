@@ -1,22 +1,25 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { io } from "socket.io-client";
+import { useRouter } from "next/navigation";
+
 const socket = io("http://localhost:8080");
 
 export function GameLobby() {
-  const [roomCode, setRoomCode] = useState("")
-  const [displayName, setDisplayName] = useState("")
-  const [players, setPlayers] = useState<string[]>([])
-  const [inRoom, setInRoom] = useState(false)
+  const [roomCode, setRoomCode] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [players, setPlayers] = useState<string[]>([]);
+  const [inRoom, setInRoom] = useState(false);
+  const router = useRouter(); // <-- for navigation
 
   useEffect(() => {
     socket.on("roomCreated", (newRoomCode) => {
-      setRoomCode(newRoomCode)
-      setInRoom(true)
+      setRoomCode(newRoomCode);
+      setInRoom(true);
     });
 
     socket.on("roomUpdated", (room) => {
@@ -36,7 +39,7 @@ export function GameLobby() {
     if (displayName) {
       socket.emit("create-room", displayName);
     }
-  }
+  };
 
   const joinRoom = () => {
     if (displayName && roomCode.length === 6) {
@@ -47,14 +50,23 @@ export function GameLobby() {
     } else {
       alert("Please enter a valid 6-character room code");
     }
-  }
+  };
 
   const leaveRoom = () => {
     socket.emit("leave-room", roomCode);
-    setRoomCode("")
-    setPlayers([])
-    setInRoom(false)
-  }
+    setRoomCode("");
+    setPlayers([]);
+    setInRoom(false);
+  };
+
+  // NEW: Start Game handler
+  const startGame = () => {
+    // You could also emit a "start-game" event if the server needs to know
+    // socket.emit("start-game", { roomCode });
+
+    // Then navigate to the canvas page
+    router.push("/canvas");
+  };
 
   return (
     <Card className="max-w-md mx-auto bg-gray-800 text-white">
@@ -98,6 +110,11 @@ export function GameLobby() {
                 <li key={index}>{player}</li>
               ))}
             </ul>
+
+            <Button onClick={startGame} variant="default" className="w-full">
+              Start Game
+            </Button>
+
             <Button onClick={leaveRoom} variant="destructive" className="w-full">
               Leave Room
             </Button>
@@ -105,6 +122,5 @@ export function GameLobby() {
         )}
       </CardContent>
     </Card>
-  )
+  );
 }
-
