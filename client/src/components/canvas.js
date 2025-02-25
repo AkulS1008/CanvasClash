@@ -21,6 +21,7 @@ const CanvasDraw = ({ width = 400, height = 400 }) => {
     ctx.lineWidth = 5;
     ctx.strokeStyle = PEN_COLOR;
 
+    // Fill background
     ctx.fillStyle = BACKGROUND_COLOR;
     ctx.fillRect(0, 0, width, height);
 
@@ -35,7 +36,7 @@ const CanvasDraw = ({ width = 400, height = 400 }) => {
 
   const startDrawing = (e) => {
     setIsDrawing(true);
-    draw(e); 
+    draw(e);
   };
 
   const endDrawing = () => {
@@ -71,6 +72,8 @@ const CanvasDraw = ({ width = 400, height = 400 }) => {
     context.clearRect(0, 0, width, height);
     context.fillStyle = BACKGROUND_COLOR;
     context.fillRect(0, 0, width, height);
+
+    // Reset stroke style
     context.strokeStyle = isErasing ? BACKGROUND_COLOR : PEN_COLOR;
   };
 
@@ -79,10 +82,18 @@ const CanvasDraw = ({ width = 400, height = 400 }) => {
   };
 
   return (
-    <div style={{ display: "inline-block", textAlign: "center" }}>
-      <div style={{ marginBottom: 8 }}>
-        <button onClick={clearCanvas}>Clear</button>
-        <button onClick={toggleEraser} style={{ marginLeft: 8 }}>
+    <div className="text-center">
+      <div className="mb-3">
+        <button
+          onClick={clearCanvas}
+          className="mr-2 rounded bg-gray-700 hover:bg-gray-600 text-white px-4 py-2"
+        >
+          Clear
+        </button>
+        <button
+          onClick={toggleEraser}
+          className="rounded bg-gray-700 hover:bg-gray-600 text-white px-4 py-2"
+        >
           {isErasing ? "Use Pen" : "Use Eraser"}
         </button>
       </div>
@@ -90,8 +101,9 @@ const CanvasDraw = ({ width = 400, height = 400 }) => {
       <canvas
         ref={canvasRef}
         style={{
-          border: "1px solid #000",
+          border: "2px solid #444",
           cursor: isErasing ? "crosshair" : "default",
+          backgroundColor: BACKGROUND_COLOR,
         }}
         onMouseDown={startDrawing}
         onMouseUp={endDrawing}

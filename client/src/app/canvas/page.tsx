@@ -1,13 +1,13 @@
 "use client";
 import React from "react";
 import Mobilenet from "../mobilenet";
-import CanvasDraw from "@/components/canvas.js";
 
 export default function CanvasPage() {
-  return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-xl font-bold mb-4">Canvas Page</h1>
-      <Mobilenet />
-    </div>
-  );
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white">
+        <main className="container mx-auto px-4 py-8">
+          <Mobilenet />
+        </main>
+      </div>
+    );
 }

@@ -1,8 +1,11 @@
+"use client";
 import React, { useRef, useState, useEffect } from "react";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import io, { Socket } from "socket.io-client";
 import * as mobilenet from "@tensorflow-models/mobilenet";
-import "@tensorflow/tfjs"; 
+import "@tensorflow/tfjs";
+import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 
 const CanvasDraw = dynamic(() => import("../components/canvas.js"), {
   ssr: false,
@@ -17,12 +20,17 @@ export default function MobileNet() {
   const [predictions, setPredictions] = useState<MobileNetPrediction[]>([]);
   const socketRef = useRef<Socket | null>(null);
   const modelRef = useRef<mobilenet.MobileNet | null>(null);
+  const router = useRouter();
+
+  // TO DO: fetch or pass name as props/context
+  const playerName = "Akul (Host)";
+
+  // TO DO: get the room code from the URL or context
+  const roomCode = "XYZ123";
 
   useEffect(() => {
-    // Initialize socket connection
-    socketRef.current = io("http://localhost:8080"); 
+    socketRef.current = io("http://localhost:8080");
 
-    // Load the MobileNet model
     const loadModel = async () => {
       const model = await mobilenet.load();
       modelRef.current = model;
@@ -30,11 +38,8 @@ export default function MobileNet() {
     };
     loadModel();
 
-    // Cleanup socket on unmount
     return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
+      socketRef.current?.disconnect();
     };
   }, []);
 
@@ -44,43 +49,78 @@ export default function MobileNet() {
       return;
     }
 
-    // Grab the <canvas> element from the DOM
-    // Using querySelector in this example, but you could 
-    // also forward a ref from CanvasDraw
-    const canvasEl = document.querySelector("canvas");
+    const canvasEl = document.querySelector("canvas") as HTMLCanvasElement | null;
     if (!canvasEl) {
       console.error("Canvas element not found");
       return;
     }
 
-    // Classify the canvas image
-    const results = await modelRef.current.classify(canvasEl as HTMLCanvasElement);
-    setPredictions(results);
+    const results = await modelRef.current.classify(canvasEl);
+    const sorted = results.sort((a, b) => b.probability - a.probability);
+    setPredictions(sorted);
 
-    // Emit predictions to server via Socket.IO
-    socketRef.current?.emit("drawing-prediction", results);
+    socketRef.current?.emit("drawing-prediction", sorted);
+  };
+
+  // To display the top (highest‐probability) prediction
+  const topPrediction = predictions[0];
+
+  const leaveGame = () => {
+    socketRef.current?.emit("leave-room", roomCode);
+    router.push("/");
   };
 
   return (
-    <div style={{ textAlign: "center" }}>
-      <h1>Draw Something!</h1>
-      <CanvasDraw width={400} height={400} />
+    <div className="min-h-screen bg-gray-900 text-white p-8">
+      {/* We removed the extra heading outside the card, 
+          so there's no "Canvas Page" text in white anymore. */}
       
-      <br />
-      <button onClick={handlePredict}>Predict Drawing</button>
+      <Card className="max-w-xl mx-auto bg-gray-800 text-white border-0 shadow-none">
+        <CardHeader>
+          {/* Replace "Canvas Page" with the player's name */}
+          <CardTitle className="text-2xl font-bold text-center">
+            {playerName}
+          </CardTitle>
+        </CardHeader>
 
-      <div style={{ marginTop: 20 }}>
-        <h2>Predictions:</h2>
-        {predictions.length > 0 ? (
-          predictions.map((p, idx) => (
-            <div key={idx}>
-              {p.className} - {(p.probability * 100).toFixed(2)}%
-            </div>
-          ))
-        ) : (
-          <p>No predictions yet.</p>
-        )}
-      </div>
+        <CardContent className="space-y-4">
+          <p className="text-center font-semibold">Draw Something!</p>
+
+          <div className="flex justify-center">
+            <CanvasDraw width={400} height={400} />
+          </div>
+
+          <div className="text-center">
+            <button
+              onClick={handlePredict}
+              className="rounded bg-black hover:bg-gray-700 text-white px-4 py-2"
+            >
+              Predict Drawing
+            </button>
+          </div>
+
+          <div className="text-center">
+            {topPrediction ? (
+              <p className="mt-2">
+                <span className="font-semibold">Prediction:</span> {topPrediction.className} -{" "}
+                {(topPrediction.probability * 100).toFixed(2)}%
+              </p>
+            ) : (
+              <p className="mt-2">No predictions yet.</p>
+            )}
+          </div>
+
+          <div className="text-center pt-4">
+            <button
+              onClick={leaveGame}
+              className="rounded bg-red-600 hover:bg-red-500 text-white px-4 py-2"
+              style={{ width: "auto" }}
+            >
+              Leave Game
+            </button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
