@@ -63,6 +63,13 @@ io.on("connection", (socket) => {
         }
     }
 
+    socket.on("drawing-prediction", (data) => {
+        console.log("Received prediction:", data);
+        // Here you can broadcast to other clients or store the prediction in a DB
+        // For example, broadcast to all clients:
+        io.emit("new-prediction", data);
+    });
+
     socket.on("disconnect", () => {
         console.log(`User disconnected: ${socket.id}`);
         leaveRooms(socket);
