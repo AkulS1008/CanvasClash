@@ -14,6 +14,7 @@ export function GameLobby() {
   const [displayName, setDisplayName] = useState("");
   const [players, setPlayers] = useState<string[]>([]);
   const [inRoom, setInRoom] = useState(false);
+  const [hostId, setHostId] = useState("");
   const router = useRouter(); // <-- for navigation
 
   useEffect(() => {
@@ -24,6 +25,12 @@ export function GameLobby() {
 
     socket.on("roomUpdated", (room) => {
       setPlayers(room.players.map((p: any) => p.name));
+      setHostId(room.hostId);
+    });
+
+    socket.on("gameStarted", (roomCode) => {
+      // When the game starts, redirect all players to the /canvas page
+      router.push("/canvas");
     });
 
     socket.on("error", (message) => alert(message));
@@ -31,6 +38,7 @@ export function GameLobby() {
     return () => {
       socket.off("roomCreated");
       socket.off("roomUpdated");
+      socket.off("gameStarted");
       socket.off("error");
     };
   }, []);
@@ -65,7 +73,7 @@ export function GameLobby() {
     // socket.emit("start-game", { roomCode });
 
     // Then navigate to the canvas page
-    router.push("/canvas");
+    socket.emit("start-game", roomCode);
   };
 
   return (
@@ -111,9 +119,11 @@ export function GameLobby() {
               ))}
             </ul>
 
-            <Button onClick={startGame} variant="default" className="w-full">
-              Start Game
-            </Button>
+            {hostId === socket.id && (
+              <Button onClick={startGame} variant="default" className="w-full">
+                Start Game
+              </Button>
+            )}
 
             <Button onClick={leaveRoom} variant="destructive" className="w-full">
               Leave Room

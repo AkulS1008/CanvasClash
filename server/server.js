@@ -24,7 +24,10 @@ io.on("connection", (socket) => {
 
     socket.on("create-room", (displayName) => {
         const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-        rooms[roomCode] = { players: [{ id: socket.id, name: `${displayName} (Host)` }] };
+        rooms[roomCode] = {
+            players: [{ id: socket.id, name: `${displayName} (Host)` }],
+            hostId: socket.id
+        };
         socket.emit("roomCreated", roomCode);
         socket.join(roomCode);
         io.to(roomCode).emit("roomUpdated", rooms[roomCode]);
@@ -73,6 +76,18 @@ io.on("connection", (socket) => {
     socket.on("disconnect", () => {
         console.log(`User disconnected: ${socket.id}`);
         leaveRooms(socket);
+    });
+
+    socket.on("start-game", (roomCode) => {
+        // Check if the current socket is the host (you may have saved this earlier when creating the room)
+        const room = rooms[roomCode];
+        if (room && room.players[0].id === socket.id) { // Assuming the first player is the host
+            // Broadcast "gameStarted" to all players in the room
+            io.to(roomCode).emit("gameStarted", roomCode);
+            console.log(`Game started in room: ${roomCode}`);
+        } else {
+            socket.emit("error", "Only the host can start the game.");
+        }
     });
 });
 
