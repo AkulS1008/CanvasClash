@@ -2,10 +2,10 @@
 import React, { useRef, useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import io, { Socket } from "socket.io-client";
 import * as mobilenet from "@tensorflow-models/mobilenet";
 import "@tensorflow/tfjs";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
+import { useSocket } from "@/context/SocketContext"; // Import the global socket hook
 
 const CanvasDraw = dynamic(() => import("../components/canvas.js"), {
   ssr: false,
@@ -14,6 +14,7 @@ const CanvasDraw = dynamic(() => import("../components/canvas.js"), {
 interface MobilenetProps {
   playerName: string;
   roomCode: string;
+  playerID: string;
 }
 
 interface MobileNetPrediction {
@@ -23,23 +24,18 @@ interface MobileNetPrediction {
 
 export default function MobileNet({ playerName, roomCode }: MobilenetProps) {
   const [predictions, setPredictions] = useState<MobileNetPrediction[]>([]);
-  const socketRef = useRef<Socket | null>(null);
   const modelRef = useRef<mobilenet.MobileNet | null>(null);
   const router = useRouter();
+  const socket = useSocket(); // Use the global socket
+  const playerID = localStorage.getItem("playerId") || "";
 
   useEffect(() => {
-    socketRef.current = io("http://localhost:8080");
-
     const loadModel = async () => {
       const model = await mobilenet.load();
       modelRef.current = model;
       console.log("MobileNet model loaded");
     };
     loadModel();
-
-    return () => {
-      socketRef.current?.disconnect();
-    };
   }, []);
 
   const handlePredict = async () => {
@@ -58,25 +54,32 @@ export default function MobileNet({ playerName, roomCode }: MobilenetProps) {
     const sorted = results.sort((a, b) => b.probability - a.probability);
     setPredictions(sorted);
 
-    socketRef.current?.emit("drawing-prediction", sorted);
+    // Use the global socket to emit events
+    socket?.emit("drawing-prediction", sorted);
+    if (sorted.length > 0) {
+      const topPrediction = sorted[0]; // Get top prediction
+      const scoreIncrease = Math.round(topPrediction.probability * 100); // Convert to a score
+
+      socket?.emit("update-score", {
+        roomCode,
+        playerId: playerID,
+        score: scoreIncrease,
+      });
+    }
   };
 
   // To display the top (highest‐probability) prediction
   const topPrediction = predictions[0];
 
   const leaveGame = () => {
-    socketRef.current?.emit("leave-room", roomCode);
+    socket?.emit("leave-room", roomCode);
     router.push("/");
   };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
-      {/* We removed the extra heading outside the card, 
-          so there's no "Canvas Page" text in white anymore. */}
-      
       <Card className="max-w-xl mx-auto bg-gray-800 text-white border-0 shadow-none">
         <CardHeader>
-          {/* Replace "Canvas Page" with the player's name */}
           <CardTitle className="text-2xl font-bold text-center">
             {playerName}
           </CardTitle>
