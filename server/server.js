@@ -25,7 +25,7 @@ io.on("connection", (socket) => {
     socket.on("create-room", (displayName) => {
         const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
         rooms[roomCode] = {
-            players: [{ id: socket.id, name: `${displayName} (Host)` }],
+            players: [{ id: socket.id, name: `${displayName} (Host)`, score: 0 }],
             hostId: socket.id
         };
         socket.emit("roomCreated", roomCode);
@@ -36,7 +36,7 @@ io.on("connection", (socket) => {
 
     socket.on("join-room", ({ roomCode, displayName }) => {
         if (rooms[roomCode]) {
-            rooms[roomCode].players.push({ id: socket.id, name: displayName });
+            rooms[roomCode].players.push({ id: socket.id, name: displayName, score: 0 });
             socket.join(roomCode);
             io.to(roomCode).emit("roomUpdated", rooms[roomCode]);
             console.log(`User joined room: ${roomCode}`);
@@ -81,14 +81,40 @@ io.on("connection", (socket) => {
     socket.on("start-game", (roomCode) => {
         // Check if the current socket is the host (you may have saved this earlier when creating the room)
         const room = rooms[roomCode];
-        if (room && room.players[0].id === socket.id) { // Assuming the first player is the host
+        if (room && room.hostId === socket.id) { // Assuming the first player is the host
             // Broadcast "gameStarted" to all players in the room
             io.to(roomCode).emit("gameStarted", roomCode);
+            
             console.log(`Game started in room: ${roomCode}`);
         } else {
             socket.emit("error", "Only the host can start the game.");
         }
     });
+
+    // socket.on("update-score", ({ roomCode, playerId, score }) => {
+    //     if (rooms[roomCode]) {
+    //         const player = rooms[roomCode].players.find(p => p.id === playerId);
+    //         if (player) {
+    //             player.score = score;
+    //             io.to(roomCode).emit("scoreUpdated", rooms[roomCode].players);
+    //             console.log(`Updated score for ${player.name}: ${score}`);
+    //         }
+    //     }
+    // });
+    socket.on("update-score", ({ roomCode, playerId, score }) => {
+        console.log("Received update-score event:", { roomCode, playerId, score });
+        console.log("Checking room existence:", roomCode, rooms[roomCode]);
+
+        if (rooms[roomCode]) {
+            const player = rooms[roomCode].players.find(p => p.id === playerId);
+            if (player) {
+                player.score = (player.score || 0) + score; // Accumulate score instead of overwriting
+                io.to(roomCode).emit("scoreUpdated", rooms[roomCode].players);
+                console.log(`Updated score for ${player.name}: ${player.score}`);
+            }
+        }
+    });
+
 });
 
 server.listen(PORT, () => {

@@ -1,29 +1,33 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { useSocket } from "@/context/SocketContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { io } from "socket.io-client";
 import { useRouter } from "next/navigation";
 
-const socket = io("http://localhost:8080");
-
 export function GameLobby() {
+  const socket = useSocket();
   const [roomCode, setRoomCode] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [players, setPlayers] = useState<string[]>([]);
   const [inRoom, setInRoom] = useState(false);
   const [hostId, setHostId] = useState("");
-  const router = useRouter(); // <-- for navigation
-
-  const displayNameRef = useRef("");
+  const router = useRouter();
 
   useEffect(() => {
-    displayNameRef.current = displayName; // Always update ref when displayName changes
-  }, [displayName]);
-  
-  useEffect(() => {
+    if (!socket) return;
+
+    const storedPlayerId = "";
+
+    socket.on("connect", () => {
+      if (storedPlayerId=="") {
+        console.log("Connected with ID:", socket.id);
+        localStorage.setItem("playerId", socket.id || "");
+      }
+    });
+
     socket.on("roomCreated", (newRoomCode) => {
       setRoomCode(newRoomCode);
       setInRoom(true);
@@ -35,29 +39,29 @@ export function GameLobby() {
     });
 
     socket.on("gameStarted", (roomCode) => {
-      // When the game starts, redirect all players to the /canvas page
-      // router.push("/canvas");
-      router.push(`/canvas?playerName=${displayNameRef.current}&roomCode=${roomCode}`);
+      const playerId = localStorage.getItem("playerId");
+      router.push(`/canvas?playerName=${displayName}&roomCode=${roomCode}&playerId=${playerId}`);
     });
 
     socket.on("error", (message) => alert(message));
 
     return () => {
+      socket.off("connect");
       socket.off("roomCreated");
       socket.off("roomUpdated");
       socket.off("gameStarted");
       socket.off("error");
     };
-  }, []);
+  }, [socket, router, displayName]);
 
   const createRoom = () => {
-    if (displayName) {
+    if (displayName && socket) {
       socket.emit("create-room", displayName);
     }
   };
 
   const joinRoom = () => {
-    if (displayName && roomCode.length === 6) {
+    if (displayName && roomCode.length === 6 && socket) {
       socket.emit("join-room", { roomCode, displayName });
       setInRoom(true);
     } else if (!displayName) {
@@ -68,19 +72,18 @@ export function GameLobby() {
   };
 
   const leaveRoom = () => {
-    socket.emit("leave-room", roomCode);
-    setRoomCode("");
-    setPlayers([]);
-    setInRoom(false);
+    if (socket) {
+      socket.emit("leave-room", roomCode);
+      setRoomCode("");
+      setPlayers([]);
+      setInRoom(false);
+    }
   };
 
-  // NEW: Start Game handler
   const startGame = () => {
-    // You could also emit a "start-game" event if the server needs to know
-    // socket.emit("start-game", { roomCode });
-
-    // Then navigate to the canvas page
-    socket.emit("start-game", roomCode);
+    if (socket) {
+      socket.emit("start-game", roomCode);
+    }
   };
 
   return (
@@ -126,7 +129,7 @@ export function GameLobby() {
               ))}
             </ul>
 
-            {hostId === socket.id && (
+            {hostId === socket?.id && (
               <Button onClick={startGame} variant="default" className="w-full">
                 Start Game
               </Button>
