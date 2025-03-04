@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,8 +14,15 @@ export function GameLobby() {
   const [displayName, setDisplayName] = useState("");
   const [players, setPlayers] = useState<string[]>([]);
   const [inRoom, setInRoom] = useState(false);
+  const [hostId, setHostId] = useState("");
   const router = useRouter(); // <-- for navigation
 
+  const displayNameRef = useRef("");
+
+  useEffect(() => {
+    displayNameRef.current = displayName; // Always update ref when displayName changes
+  }, [displayName]);
+  
   useEffect(() => {
     socket.on("roomCreated", (newRoomCode) => {
       setRoomCode(newRoomCode);
@@ -24,6 +31,13 @@ export function GameLobby() {
 
     socket.on("roomUpdated", (room) => {
       setPlayers(room.players.map((p: any) => p.name));
+      setHostId(room.hostId);
+    });
+
+    socket.on("gameStarted", (roomCode) => {
+      // When the game starts, redirect all players to the /canvas page
+      // router.push("/canvas");
+      router.push(`/canvas?playerName=${displayNameRef.current}&roomCode=${roomCode}`);
     });
 
     socket.on("error", (message) => alert(message));
@@ -31,6 +45,7 @@ export function GameLobby() {
     return () => {
       socket.off("roomCreated");
       socket.off("roomUpdated");
+      socket.off("gameStarted");
       socket.off("error");
     };
   }, []);
@@ -65,7 +80,7 @@ export function GameLobby() {
     // socket.emit("start-game", { roomCode });
 
     // Then navigate to the canvas page
-    router.push("/canvas");
+    socket.emit("start-game", roomCode);
   };
 
   return (
@@ -111,9 +126,11 @@ export function GameLobby() {
               ))}
             </ul>
 
-            <Button onClick={startGame} variant="default" className="w-full">
-              Start Game
-            </Button>
+            {hostId === socket.id && (
+              <Button onClick={startGame} variant="default" className="w-full">
+                Start Game
+              </Button>
+            )}
 
             <Button onClick={leaveRoom} variant="destructive" className="w-full">
               Leave Room
