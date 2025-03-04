@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,12 @@ export function GameLobby() {
   const [hostId, setHostId] = useState("");
   const router = useRouter(); // <-- for navigation
 
+  const displayNameRef = useRef("");
+
+  useEffect(() => {
+    displayNameRef.current = displayName; // Always update ref when displayName changes
+  }, [displayName]);
+  
   useEffect(() => {
     socket.on("roomCreated", (newRoomCode) => {
       setRoomCode(newRoomCode);
@@ -30,7 +36,8 @@ export function GameLobby() {
 
     socket.on("gameStarted", (roomCode) => {
       // When the game starts, redirect all players to the /canvas page
-      router.push("/canvas");
+      // router.push("/canvas");
+      router.push(`/canvas?playerName=${displayNameRef.current}&roomCode=${roomCode}`);
     });
 
     socket.on("error", (message) => alert(message));

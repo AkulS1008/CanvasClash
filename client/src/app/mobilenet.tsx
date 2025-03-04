@@ -11,22 +11,21 @@ const CanvasDraw = dynamic(() => import("../components/canvas.js"), {
   ssr: false,
 });
 
+interface MobilenetProps {
+  playerName: string;
+  roomCode: string;
+}
+
 interface MobileNetPrediction {
   className: string;
   probability: number;
 }
 
-export default function MobileNet() {
+export default function MobileNet({ playerName, roomCode }: MobilenetProps) {
   const [predictions, setPredictions] = useState<MobileNetPrediction[]>([]);
   const socketRef = useRef<Socket | null>(null);
   const modelRef = useRef<mobilenet.MobileNet | null>(null);
   const router = useRouter();
-
-  // TO DO: fetch or pass name as props/context
-  const playerName = "Akul (Host)";
-
-  // TO DO: get the room code from the URL or context
-  const roomCode = "XYZ123";
 
   useEffect(() => {
     socketRef.current = io("http://localhost:8080");
