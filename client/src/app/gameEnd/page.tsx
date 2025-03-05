@@ -2,7 +2,8 @@
 
 // pages/game-end.tsx
 import { useEffect, useState } from 'react';
-// import { useRouter } from 'next/router';
+import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
 import { useSocket } from "@/context/SocketContext"; // Import the socket context
 import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 const GameEndPage = () => {
     const searchParams = useSearchParams();
-    // const router = useRouter();
+    const router = useRouter();
     const socket = useSocket();  // Access the global socket
     const [leaderboard, setLeaderboard] = useState<any[]>([]);
     const roomCode = searchParams.get("roomCode") || "";
@@ -32,6 +33,10 @@ const GameEndPage = () => {
             socket?.off("leaderboard");
         };
     }, [socket, roomCode]);
+
+    const handleGoBack = () => {
+        router.push('/');
+    };
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white">
@@ -59,6 +64,11 @@ const GameEndPage = () => {
                                 ))}
                             </TableBody>
                         </Table>
+                        <div className="flex justify-center pt-4">
+                            <Button variant="default" size="lg" onClick={handleGoBack}>
+                                Go Back to Lobby
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
             </div>
