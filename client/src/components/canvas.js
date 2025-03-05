@@ -6,7 +6,7 @@ const CanvasDraw = ({ width = 400, height = 400 }) => {
   const [isErasing, setIsErasing] = useState(false);
   const [context, setContext] = useState(null);
 
-  const BACKGROUND_COLOR = "#FFDDA1"; // Peach-like
+  const BACKGROUND_COLOR = "#FFFFFF"; 
   const PEN_COLOR = "#000000";
 
   useEffect(() => {

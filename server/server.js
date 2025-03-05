@@ -84,23 +84,13 @@ io.on("connection", (socket) => {
         if (room && room.hostId === socket.id) { // Assuming the first player is the host
             // Broadcast "gameStarted" to all players in the room
             io.to(roomCode).emit("gameStarted", roomCode);
-            
+
             console.log(`Game started in room: ${roomCode}`);
         } else {
             socket.emit("error", "Only the host can start the game.");
         }
     });
 
-    // socket.on("update-score", ({ roomCode, playerId, score }) => {
-    //     if (rooms[roomCode]) {
-    //         const player = rooms[roomCode].players.find(p => p.id === playerId);
-    //         if (player) {
-    //             player.score = score;
-    //             io.to(roomCode).emit("scoreUpdated", rooms[roomCode].players);
-    //             console.log(`Updated score for ${player.name}: ${score}`);
-    //         }
-    //     }
-    // });
     socket.on("update-score", ({ roomCode, playerId, score }) => {
         console.log("Received update-score event:", { roomCode, playerId, score });
         console.log("Checking room existence:", roomCode, rooms[roomCode]);
@@ -114,6 +104,18 @@ io.on("connection", (socket) => {
             }
         }
     });
+
+    socket.on("get-leaderboard", (roomCode) => {
+        const room = rooms[roomCode];
+        if (room && room.players) {
+            const leaderboard = room.players
+                .sort((a, b) => b.score - a.score)  // Sort players by score in descending order
+                .map(player => ({ name: player.name, score: player.score }));
+
+            socket.emit("leaderboard", leaderboard);  // Emit leaderboard to the requesting client
+        }
+    });
+
 
 });
 
