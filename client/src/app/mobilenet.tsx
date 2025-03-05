@@ -30,9 +30,7 @@ export default function DoodleNetClassifier({ playerName, roomCode }: MobilenetP
   const modelRef = useRef<tf.LayersModel | null>(null);
   const router = useRouter();
   const socket = useSocket(); // Use the global socket
-  const playerID = typeof window !== "undefined"
-    ? localStorage.getItem("playerId") || ""
-    : "";
+  const playerID = localStorage.getItem("playerId") || "";
 
   const labels: string[] = [
     "flashlight", "belt", "mushroom", "pond", "strawberry", "pineapple", "sun", "cow", "ear", "bush",
