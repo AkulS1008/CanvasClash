@@ -6,17 +6,13 @@ import * as tf from "@tensorflow/tfjs";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { useSocket } from "@/context/SocketContext"; // Import the global socket hook
 
+// Dynamically load the CanvasDraw component so it doesn’t break on server-side
 const CanvasDraw = dynamic(() => import("../components/canvas.js"), { ssr: false });
-
 
 interface MobilenetProps {
   playerName: string;
   roomCode: string;
   playerId: string;
-}
-interface Prediction {
-  label: string;
-  confidence: number;
 }
 
 function cleanLabel(label: string) {
@@ -25,6 +21,7 @@ function cleanLabel(label: string) {
 
 export default function DoodleNetClassifier({ playerName, roomCode }: MobilenetProps) {
   const [targetWord, setTargetWord] = useState<string>("");
+  const [previousWord, setPreviousWord] = useState<string>("");
   const [roundScore, setRoundScore] = useState<number | null>(null);
   const [totalScore, setTotalScore] = useState<number>(0);
   const [timeLeft, setTimeLeft] = useState<number>(60);
@@ -33,8 +30,9 @@ export default function DoodleNetClassifier({ playerName, roomCode }: MobilenetP
   const modelRef = useRef<tf.LayersModel | null>(null);
   const router = useRouter();
   const socket = useSocket(); // Use the global socket
-  const playerID = localStorage.getItem("playerId") || "";
-  // const socketRef = useRef<any>(null);
+  const playerID = typeof window !== "undefined"
+    ? localStorage.getItem("playerId") || ""
+    : "";
 
   const labels: string[] = [
     "flashlight", "belt", "mushroom", "pond", "strawberry", "pineapple", "sun", "cow", "ear", "bush",
@@ -74,6 +72,7 @@ export default function DoodleNetClassifier({ playerName, roomCode }: MobilenetP
     "cactus", "nail", "telephone", "hand", "squirrel", "streetlight", "bed", "firetruck"
   ];
 
+  // Load model and set an initial random target word
   useEffect(() => {
     const loadModel = async () => {
       try {
@@ -81,43 +80,46 @@ export default function DoodleNetClassifier({ playerName, roomCode }: MobilenetP
         const model = await tf.loadLayersModel("/models/model.json");
         modelRef.current = model;
         console.log("✅ DoodleNet model loaded");
-      }
-      catch (error) {
+      } catch (error) {
         console.error("Failed to load model", error);
       }
-    }
+    };
     loadModel();
 
-    const randomIndex = Math.floor(Math.random() * labels.length);
-    setTargetWord(labels[randomIndex]);
+    // Pick initial random target word
+    setTargetWord(pickRandomLabel());
 
-    // Set a timer to end the game after 1 minute (60,000 milliseconds)
+    // End the game after 60 seconds
     const gameTimer = setTimeout(() => {
-      setGameOver(true); // End the game
-      // socket?.emit("game-ended", { roomCode }); // Notify the server that the game has ended
-      // alert("Time's up! The game has ended."); // Notify the user
-      router.push(`/gameEnd?roomCode=${roomCode}`); // Redirect to the game end page
+      setGameOver(true);
+      router.push(`/gameEnd?roomCode=${roomCode}`);
     }, 60000);
 
-    // Update the countdown timer every second
+    // Countdown
     const countdownInterval = setInterval(() => {
       setTimeLeft((prevTime) => {
         if (prevTime <= 1) {
-          clearInterval(countdownInterval); // Stop the interval when time runs out
+          clearInterval(countdownInterval);
           return 0;
         }
         return prevTime - 1;
       });
     }, 1000);
 
-    // Clean up the timer and interval when the component unmounts
+    // Clean up
     return () => {
       clearTimeout(gameTimer);
       clearInterval(countdownInterval);
     };
-  }, [roomCode, router, socket]);
+  }, [roomCode, router]);
 
-  // AI parses the drawing and assigns a score
+  // Utility to pick a random word from the labels array
+  function pickRandomLabel() {
+    const randomIndex = Math.floor(Math.random() * labels.length);
+    return labels[randomIndex];
+  }
+
+  // Function to handle predictions
   const handlePredict = async () => {
     if (!modelRef.current || gameOver) {
       console.error("Model not loaded or game is over.");
@@ -138,27 +140,30 @@ export default function DoodleNetClassifier({ playerName, roomCode }: MobilenetP
       imgTensor = tf.sub(tf.scalar(1), imgTensor) as tf.Tensor3D;
       const finalTensor = imgTensor.expandDims(0); // shape [1, 28, 28, 1]
 
+      // If canvas is essentially empty, set score to 0
       const sumInk = (await finalTensor.sum().array()) as number;
       const emptyThreshold = 1.0;
       if (sumInk < emptyThreshold) {
         setRoundScore(0);
-        setTotalScore(prev => prev + 0);
+        setTotalScore((prev) => prev + 0);
         clearCanvas(canvasEl);
-        pickNewWord();
+        // Notice we do NOT set previousWord here because user didn't draw anything
+        // (Optional, but you might want to handle it differently)
+        setTargetWord(pickRandomLabel());
         tf.dispose([imgTensor, finalTensor]);
         return;
       }
 
-      // Run prediction
       const predictionTensor = modelRef.current.predict(finalTensor) as tf.Tensor<tf.Rank>;
       const probabilities = predictionTensor.dataSync() as Float32Array;
+
+      // Sort probabilities to find top 5
       const sorted = Array.from(probabilities)
         .map((prob, i) => [prob, i] as [number, number])
         .sort((a, b) => b[0] - a[0]);
-
-      // If target word is in top 5 => composite score
-      // Otherwise => use highest prob from top 5 (coz thi model hella dookie)
       const top5 = sorted.slice(0, 5);
+
+      // Scoring logic
       const targetIndex = labels.indexOf(targetWord);
       const targetInTop5 = top5.some(([, idx]) => idx === targetIndex);
       const highestProb = top5.length > 0 ? top5[0][0] : 0;
@@ -166,27 +171,37 @@ export default function DoodleNetClassifier({ playerName, roomCode }: MobilenetP
       let roundScoreValue = 0;
 
       if (targetInTop5) {
+        // If our target is in the top 5
         const rawProb = probabilities[targetIndex];
         const targetProb = rawProb === 0 ? epsilon : rawProb;
-        roundScoreValue = (targetProb + targetProb / highestProb) / 2;
-      }
-      else {
+        roundScoreValue = (targetProb + targetProb / highestProb) / 2; 
+      } else {
         roundScoreValue = highestProb;
       }
+
+      // Convert to points
       const newRoundScore = Math.ceil(roundScoreValue * 100);
 
+      // Update states and notify server
       setRoundScore(newRoundScore);
-      setTotalScore(prev => prev + Math.ceil(roundScoreValue * 100));
+      setTotalScore((prev) => prev + newRoundScore);
       socket?.emit("update-score", {
         roomCode,
         playerId: playerID,
         score: newRoundScore,
       });
+
+      // 1) Save the current word as "previousWord"
+      setPreviousWord(targetWord);
+
+      // 2) Pick new word immediately for next round
+      setTargetWord(pickRandomLabel());
+
+      // Clear canvas and dispose of Tensors
       clearCanvas(canvasEl);
-      pickNewWord();
       tf.dispose([imgTensor, finalTensor, predictionTensor]);
-    }
-    catch (error) {
+
+    } catch (error) {
       console.error("Error during prediction", error);
     }
   };
@@ -199,16 +214,8 @@ export default function DoodleNetClassifier({ playerName, roomCode }: MobilenetP
     ctx.fillRect(0, 0, canvasEl.width, canvasEl.height);
   }
 
-  function pickNewWord() {
-    const randomIndex = Math.floor(Math.random() * labels.length);
-    setTargetWord(labels[randomIndex]);
-  }
-
   const leaveGame = () => {
     socket?.emit("leave-room", roomCode);
-    // if (socketRef.current) {
-    //   socketRef.current.emit("playerScore", { name: "Akul (Host)", score: totalScore });
-    // }
     router.push("/");
   };
 
@@ -237,17 +244,25 @@ export default function DoodleNetClassifier({ playerName, roomCode }: MobilenetP
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-center">{playerName}</CardTitle>
         </CardHeader>
+
         <CardContent className="space-y-4">
+          {/* Timer bar */}
           <div className="timer-bar-container">
             <div className="timer-bar" style={{ width: `${timePercent}%` }} />
           </div>
+
+          {/* Time left & current word */}
           <div className="flex justify-between items-center">
             <p className="font-semibold text-xl">Time Left: {timeLeft}s</p>
             <p className="font-semibold text-xl">Draw: {displayWord}</p>
           </div>
+
+          {/* Drawing Canvas */}
           <div className="flex justify-center">
             <CanvasDraw width={400} height={400} />
           </div>
+
+          {/* Submit Drawing Button */}
           <div className="text-center">
             {timeLeft > 0 ? (
               <button
@@ -260,16 +275,22 @@ export default function DoodleNetClassifier({ playerName, roomCode }: MobilenetP
               <p className="mt-4 font-bold text-xl">Time's up!</p>
             )}
           </div>
+
+          {/* Display Round Score for the *previous* word */}
           <div className="text-center">
-            {roundScore !== null && (
+            {roundScore !== null && previousWord && (
               <p className="mt-2 font-semibold">
-                Round Score for "{displayWord}": {roundScore.toFixed(3)} points
+                Round Score for {cleanLabel(previousWord)}: {roundScore.toFixed(3)} points
               </p>
             )}
           </div>
+
+          {/* Display Total Score */}
           <div className="text-center">
             <p className="mt-2 font-semibold">Total Score: {totalScore.toFixed(3)} points</p>
           </div>
+
+          {/* Leave Game */}
           <div className="text-center pt-4">
             <button
               onClick={leaveGame}
