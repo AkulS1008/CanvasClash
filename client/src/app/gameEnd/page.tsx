@@ -35,6 +35,7 @@ const GameEndPage = () => {
     }, [socket, roomCode]);
 
     const handleGoBack = () => {
+        socket?.emit("leave-room", roomCode);
         router.push('/');
     };
 

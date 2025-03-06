@@ -2,7 +2,6 @@ const express = require('express');
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require('cors');
-//const { v4: uuidv4 } = require('uuid'); // Import uuid
 const PORT = 8080;
 
 const app = express();
