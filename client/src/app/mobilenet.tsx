@@ -109,7 +109,7 @@ export default function DoodleNetClassifier({ playerName, roomCode }: MobilenetP
       clearTimeout(gameTimer);
       clearInterval(countdownInterval);
     };
-  }, [roomCode, router]);
+  }, [roomCode, router, pickRandomLabel]);
 
   // Utility to pick a random word from the labels array
   function pickRandomLabel() {
@@ -270,7 +270,7 @@ export default function DoodleNetClassifier({ playerName, roomCode }: MobilenetP
                 Submit Drawing
               </button>
             ) : (
-              <p className="mt-4 font-bold text-xl">Time's up!</p>
+              <p className="mt-4 font-bold text-xl">Time&apos;s up!</p>
             )}
           </div>
 

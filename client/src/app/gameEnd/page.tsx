@@ -13,6 +13,7 @@ const GameEndPage = () => {
     const searchParams = useSearchParams();
     const router = useRouter();
     const socket = useSocket();  // Access the global socket
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [leaderboard, setLeaderboard] = useState<any[]>([]);
     const roomCode = searchParams.get("roomCode") || "";
 
