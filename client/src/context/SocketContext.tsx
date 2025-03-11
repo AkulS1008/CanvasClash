@@ -10,7 +10,8 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
 
     useEffect(() => {
         // Initialize the WebSocket connection
-        const newSocket = io("http://localhost:8080");
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
+        const newSocket = io(backendUrl);
 
         // Set the socket in state
         setSocket(newSocket);
