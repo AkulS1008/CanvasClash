@@ -34,6 +34,7 @@ export function GameLobby() {
     });
 
     socket.on("roomUpdated", (room) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setPlayers(room.players.map((p: any) => p.name));
       setHostId(room.hostId);
     });

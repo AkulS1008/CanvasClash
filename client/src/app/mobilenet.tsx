@@ -70,6 +70,11 @@ export default function DoodleNetClassifier({ playerName, roomCode }: MobilenetP
     "cactus", "nail", "telephone", "hand", "squirrel", "streetlight", "bed", "firetruck"
   ];
 
+  // const pickRandomLabel = useCallback(() => {
+  //   const randomIndex = Math.floor(Math.random() * labels.length);
+  //   return labels[randomIndex];
+  // }, [labels]);
+
   // Load model and set an initial random target word
   useEffect(() => {
     const loadModel = async () => {
@@ -270,7 +275,7 @@ export default function DoodleNetClassifier({ playerName, roomCode }: MobilenetP
                 Submit Drawing
               </button>
             ) : (
-              <p className="mt-4 font-bold text-xl">Time's up!</p>
+              <p className="mt-4 font-bold text-xl">Time&apos;s up!</p>
             )}
           </div>
 

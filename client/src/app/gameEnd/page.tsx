@@ -1,23 +1,29 @@
 "use client";
 
-// pages/game-end.tsx
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useSocket } from "@/context/SocketContext"; // Import the socket context
 import { useSearchParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-const GameEndPage = () => {
+// Separate component for the main content
+function GameEndContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const socket = useSocket();  // Access the global socket
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [leaderboard, setLeaderboard] = useState<any[]>([]);
     const roomCode = searchParams.get("roomCode") || "";
+    const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
-        if (!roomCode) return;
+        setIsClient(true); // Set to true once the component is mounted on the client side
+    }, []);
+
+    useEffect(() => {
+        if (!roomCode || !isClient) return;
 
         // Listen for the leaderboard data from the server
         socket?.on("leaderboard", (data) => {
@@ -25,19 +31,22 @@ const GameEndPage = () => {
         });
 
         // Emit event to get leaderboard when the component mounts
-        // const roomCode = "your-room-code-here"; // Get room code (from router query or state)
         socket?.emit("get-leaderboard", roomCode);
 
         // Cleanup the event listener on component unmount
         return () => {
             socket?.off("leaderboard");
         };
-    }, [socket, roomCode]);
+    }, [socket, roomCode, isClient]);
 
     const handleGoBack = () => {
         socket?.emit("leave-room", roomCode);
         router.push('/');
     };
+
+    if (!isClient) {
+        return <div>Loading...</div>; // Render loading state until the component mounts on the client
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white">
@@ -75,6 +84,13 @@ const GameEndPage = () => {
             </div>
         </div>
     );
-};
+}
 
-export default GameEndPage;
+// Main page component
+export default function GameEndPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <GameEndContent />
+        </Suspense>
+    );
+}

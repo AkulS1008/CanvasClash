@@ -2,7 +2,7 @@ const express = require('express');
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require('cors');
-const PORT = 8080;
+const PORT = process.env.PORT || 8080;
 
 const app = express();
 const server = http.createServer(app);
@@ -13,7 +13,7 @@ app.use(cors());
 
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:3000",
+        origin: process.env.FRONTEND_URL || "http://localhost:3000",
         methods: ["GET", "POST"]
     }
 });
@@ -69,7 +69,7 @@ io.on("connection", (socket) => {
         console.log("Received prediction:", data);
         // Here you can broadcast to other clients or store the prediction in a DB
         // For example, broadcast to all clients:
-        io.emit("new-prediction", data);
+        io.to(data.roomCode).emit("new-prediction", data);
     });
 
     socket.on("disconnect", () => {
