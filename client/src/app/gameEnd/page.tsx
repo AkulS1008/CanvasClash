@@ -1,7 +1,7 @@
 "use client";
 
 // pages/game-end.tsx
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useSocket } from "@/context/SocketContext"; // Import the socket context
@@ -41,40 +41,42 @@ const GameEndPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white">
-            <div className="container mx-auto px-4 py-8">
-                <Card className="w-full max-w-md mx-auto bg-gray-800 text-white">
-                    <CardHeader>
-                        <CardTitle className="text-2xl font-bold text-center">Game Over</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="text-white">Rank</TableHead>
-                                    <TableHead className="text-white">Player</TableHead>
-                                    <TableHead className="text-white text-right">Score</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {leaderboard.map((entry, index) => (
-                                    <TableRow key={entry.name}>
-                                        <TableCell className="font-medium">{index + 1}</TableCell>
-                                        <TableCell>{entry.name}</TableCell>
-                                        <TableCell className="text-right">{entry.score}</TableCell>
+        <Suspense fallback={<div>Loading...</div>}>
+            <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-white">
+                <div className="container mx-auto px-4 py-8">
+                    <Card className="w-full max-w-md mx-auto bg-gray-800 text-white">
+                        <CardHeader>
+                            <CardTitle className="text-2xl font-bold text-center">Game Over</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead className="text-white">Rank</TableHead>
+                                        <TableHead className="text-white">Player</TableHead>
+                                        <TableHead className="text-white text-right">Score</TableHead>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                        <div className="flex justify-center pt-4">
-                            <Button variant="default" size="lg" onClick={handleGoBack}>
-                                Go Back to Lobby
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
+                                </TableHeader>
+                                <TableBody>
+                                    {leaderboard.map((entry, index) => (
+                                        <TableRow key={entry.name}>
+                                            <TableCell className="font-medium">{index + 1}</TableCell>
+                                            <TableCell>{entry.name}</TableCell>
+                                            <TableCell className="text-right">{entry.score}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                            <div className="flex justify-center pt-4">
+                                <Button variant="default" size="lg" onClick={handleGoBack}>
+                                    Go Back to Lobby
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
-        </div>
+        </Suspense>
     );
 };
 
