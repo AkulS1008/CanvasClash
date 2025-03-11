@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import * as tf from "@tensorflow/tfjs";
@@ -70,6 +70,11 @@ export default function DoodleNetClassifier({ playerName, roomCode }: MobilenetP
     "cactus", "nail", "telephone", "hand", "squirrel", "streetlight", "bed", "firetruck"
   ];
 
+  const pickRandomLabel = useCallback(() => {
+    const randomIndex = Math.floor(Math.random() * labels.length);
+    return labels[randomIndex];
+  }, [labels]);
+
   // Load model and set an initial random target word
   useEffect(() => {
     const loadModel = async () => {
@@ -112,10 +117,10 @@ export default function DoodleNetClassifier({ playerName, roomCode }: MobilenetP
   }, [roomCode, router, pickRandomLabel]);
 
   // Utility to pick a random word from the labels array
-  function pickRandomLabel() {
-    const randomIndex = Math.floor(Math.random() * labels.length);
-    return labels[randomIndex];
-  }
+  // function pickRandomLabel() {
+  //   const randomIndex = Math.floor(Math.random() * labels.length);
+  //   return labels[randomIndex];
+  // }
 
   // Function to handle predictions
   const handlePredict = async () => {
