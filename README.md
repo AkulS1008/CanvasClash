@@ -98,7 +98,7 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## Contact
 
-For questions, suggestions, or feedback, please open an issue in the repository or contact the project maintainer directly at [junhyung@ucsb.edu](mailto:junhyung@example.com).
+For questions, suggestions, or feedback, please open an issue in the repository or contact the project maintainers directly at [akul@ucsb.edu](mailto:akul@example.com) and [junhyung@ucsb.edu](mailto:junhyung@example.com).
 
 ---
 
